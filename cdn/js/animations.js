@@ -31,7 +31,6 @@ gsap.set(['.studio_svg', '.penzlien_svg'], {
    • setupCustomCursorListeners() - Add hover behaviors (runs after each page transition)
    • updateCursorLabel(text, scaleDot) - Update cursor text and dot scale
    • testCustomCursor() - Test mousemove listener and basic functionality
-   • debugCursorState() - Force cursor visible with red background for debugging
    
 📍 Location: Search for section headers below for specific functionality
 */
@@ -670,10 +669,7 @@ function initializeSliders() {
         display: none !important;
       }
 
-      /* --- DEBUG: Red Container of Truth --- */
-      body.overview-mode .page_wrap {
-        background-color: red !important;
-      }
+      
     </style>
   `;
   
@@ -1241,55 +1237,6 @@ window.testCustomCursor = function() {
   setTimeout(() => updateCursorLabel("", false), 2000);
   
   console.log('✅ Cursor test initiated. Watch console for mouse movement.');
-};
-
-window.debugCursorState = function() {
-  console.log('🔍 [DEBUG] ==================== CURSOR STATE DEBUG ====================');
-  console.log('State:', customCursorState);
-  
-  const cursor = document.querySelector('.projects_mouse_label');
-  console.log('Cursor element found:', !!cursor);
-  
-  if (cursor) {
-    // Force make visible and test positioning
-    cursor.style.cssText = `
-      position: fixed !important;
-      top: 50px !important;
-      left: 50px !important;
-      background: red !important;
-      padding: 20px !important;
-      z-index: 9999 !important;
-      pointer-events: none !important;
-      display: flex !important;
-      gap: 10px !important;
-      border: 2px solid blue !important;
-    `;
-    
-    const labelText = cursor.querySelector('.label_text');
-    const labelDot = cursor.querySelector('.label_dot');
-    
-    if (labelText) {
-      labelText.textContent = 'DEBUG MODE';
-      labelText.style.cssText = 'color: white !important; font-size: 16px !important;';
-    }
-    
-    if (labelDot) {
-      labelDot.style.cssText = 'background: yellow !important; width: 20px !important; height: 20px !important; border-radius: 50% !important;';
-    }
-    
-    console.log('✅ Cursor forced visible with red background and "DEBUG MODE" text');
-    console.log('If you can see this, the cursor element exists and can be styled.');
-    
-    // Test if we can move it with GSAP
-    setTimeout(() => {
-      gsap.to(cursor, { x: 200, y: 200, duration: 1 });
-      console.log('🎯 Testing GSAP movement to 200,200');
-    }, 1000);
-    
-  } else {
-    console.error('❌ Cursor element not found!');
-    console.log('All elements with "mouse" or "label":', document.querySelectorAll('[class*="mouse"], [class*="label"]'));
-  }
 };
 
 // DEBUG: Summary function to explain the hover system
