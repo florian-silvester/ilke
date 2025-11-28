@@ -634,9 +634,10 @@ function initializeIndexThumbHoverAnimations() {
       gsap.set($(this), { scale: 1.03 });
     });
     
-    // MOUSE ENTER: Scale down to 100%
+    // MOUSE ENTER: Scale down to 100% + fade overlay to 10%
     $(document).on('mouseenter.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
+      const $overlay = $(this).find('.index_thumb_overlay');
       
       if ($images.length > 0) {
         gsap.to($images, {
@@ -645,15 +646,32 @@ function initializeIndexThumbHoverAnimations() {
           ease: "power3.out"
         });
       }
+      
+      if ($overlay.length > 0) {
+        gsap.to($overlay, {
+          opacity: 0.1,
+          duration: 0.2,
+          ease: "power3.out"
+        });
+      }
     });
     
-    // MOUSE LEAVE: Scale back to 103%
+    // MOUSE LEAVE: Scale back to 103% + restore overlay opacity
     $(document).on('mouseleave.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
+      const $overlay = $(this).find('.index_thumb_overlay');
       
       if ($images.length > 0) {
         gsap.to($images, {
           scale: 1.03,
+          duration: 0.5,
+          ease: "power3.out"
+        });
+      }
+      
+      if ($overlay.length > 0) {
+        gsap.to($overlay, {
+          opacity: 1,
           duration: 0.5,
           ease: "power3.out"
         });
