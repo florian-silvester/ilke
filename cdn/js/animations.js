@@ -629,15 +629,15 @@ function initializeIndexThumbHoverAnimations() {
   if ($indexItems.length > 0) {
     console.log(`✅ [INDEX HOVER] Found ${$indexItems.length} index items - setting up scale animations`);
     
-    // MOUSE ENTER: Scale up to 102%
+    // MOUSE ENTER: Scale up to 110%
     $(document).on('mouseenter.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
       
       if ($images.length > 0) {
         gsap.to($images, {
-          scale: 1.02,
-          duration: 0.4,
-          ease: "power2.out"
+          scale: 1.1,
+          duration: 0.1,
+          ease: "power3.out"
         });
       }
     });
@@ -649,8 +649,8 @@ function initializeIndexThumbHoverAnimations() {
       if ($images.length > 0) {
         gsap.to($images, {
           scale: 1,
-          duration: 0.3,
-          ease: "power2.out"
+          duration: 0.2,
+          ease: "power3.out"
         });
       }
     });
