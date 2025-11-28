@@ -629,12 +629,15 @@ function initializeIndexThumbHoverAnimations() {
   if ($indexItems.length > 0) {
     console.log(`✅ [INDEX HOVER] Found ${$indexItems.length} index items - setting up scale animations`);
     
-    // Set initial scale to 103%
+    // Set initial scale to 103% and overlay to 50%
     $('.index_item').find('.index_thumb_wrap img').each(function() {
       gsap.set($(this), { scale: 1.03 });
     });
+    $('.index_item').find('.index_thumb_overlay').each(function() {
+      gsap.set($(this), { opacity: 0.5 });
+    });
     
-    // MOUSE ENTER: Scale down to 100% + fade overlay to 10%
+    // MOUSE ENTER: Scale down to 100% + fade overlay from 50% to 10%
     $(document).on('mouseenter.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
       const $overlay = $(this).find('.index_thumb_overlay');
@@ -656,7 +659,7 @@ function initializeIndexThumbHoverAnimations() {
       }
     });
     
-    // MOUSE LEAVE: Scale back to 103% + restore overlay opacity
+    // MOUSE LEAVE: Scale back to 103% + restore overlay to 50%
     $(document).on('mouseleave.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
       const $overlay = $(this).find('.index_thumb_overlay');
@@ -671,7 +674,7 @@ function initializeIndexThumbHoverAnimations() {
       
       if ($overlay.length > 0) {
         gsap.to($overlay, {
-          opacity: 1,
+          opacity: 0.5,
           duration: 0.5,
           ease: "power3.out"
         });
