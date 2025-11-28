@@ -616,7 +616,7 @@ function destroyIndexThumbHoverAnimations() {
 
 /**
  * INDEX THUMB HOVER SCALE
- * Scales up images inside .index_thumb_wrap to 102% when hovering .index_item
+ * Images start at 103% scale and zoom to 100% on hover (reverse effect)
  */
 function initializeIndexThumbHoverAnimations() {
   console.log('🎯 [INDEX HOVER] Setting up index thumb hover animations...');
@@ -629,26 +629,31 @@ function initializeIndexThumbHoverAnimations() {
   if ($indexItems.length > 0) {
     console.log(`✅ [INDEX HOVER] Found ${$indexItems.length} index items - setting up scale animations`);
     
-    // MOUSE ENTER: Scale up to 105%
+    // Set initial scale to 103%
+    $('.index_item').find('.index_thumb_wrap img').each(function() {
+      gsap.set($(this), { scale: 1.03 });
+    });
+    
+    // MOUSE ENTER: Scale down to 100%
     $(document).on('mouseenter.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
       
       if ($images.length > 0) {
         gsap.to($images, {
-          scale: 1.05,
+          scale: 1,
           duration: 0.2,
           ease: "power3.out"
         });
       }
     });
     
-    // MOUSE LEAVE: Scale back to 100%
+    // MOUSE LEAVE: Scale back to 103%
     $(document).on('mouseleave.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
       
       if ($images.length > 0) {
         gsap.to($images, {
-          scale: 1,
+          scale: 1.03,
           duration: 0.5,
           ease: "power3.out"
         });
