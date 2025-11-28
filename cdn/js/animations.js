@@ -438,6 +438,7 @@ $(document).ready(function() {
     initializeSliders();
     initializeScrollAnimations();
     initializeProjectHoverAnimations();
+    initializeIndexThumbHoverAnimations();
     initializeDetailsPanelAnimations();
     initializeSliderOverviewAnimations();
     
@@ -595,6 +596,68 @@ function initializeProjectHoverAnimations() {
     console.log('   • .project_img_wrap (trigger element)');
     console.log('   • .project_img_overlay (sibling element)');
     console.log('   • .project_thumb_wrap (sibling element)');
+  }
+}
+
+// ================================================================================
+// 🔍 INDEX THUMB HOVER SCALE EFFECT
+// ================================================================================
+
+/**
+ * CLEANUP FUNCTION
+ * Removes all index hover event listeners
+ * Called before page transitions
+ */
+function destroyIndexThumbHoverAnimations() {
+  console.log('🧹 [INDEX HOVER CLEANUP] Removing index hover event listeners...');
+  $(document).off('mouseenter.indexHover mouseleave.indexHover', '.index_item');
+  console.log('✅ [INDEX HOVER CLEANUP] Index hover animations cleaned up');
+}
+
+/**
+ * INDEX THUMB HOVER SCALE
+ * Scales up images inside .index_thumb_wrap to 102% when hovering .index_item
+ */
+function initializeIndexThumbHoverAnimations() {
+  console.log('🎯 [INDEX HOVER] Setting up index thumb hover animations...');
+  
+  // Clean up existing listeners first
+  destroyIndexThumbHoverAnimations();
+  
+  const $indexItems = $('.index_item');
+  
+  if ($indexItems.length > 0) {
+    console.log(`✅ [INDEX HOVER] Found ${$indexItems.length} index items - setting up scale animations`);
+    
+    // MOUSE ENTER: Scale up to 102%
+    $(document).on('mouseenter.indexHover', '.index_item', function() {
+      const $images = $(this).find('.index_thumb_wrap img');
+      
+      if ($images.length > 0) {
+        gsap.to($images, {
+          scale: 1.02,
+          duration: 0.4,
+          ease: "power2.out"
+        });
+      }
+    });
+    
+    // MOUSE LEAVE: Scale back to 100%
+    $(document).on('mouseleave.indexHover', '.index_item', function() {
+      const $images = $(this).find('.index_thumb_wrap img');
+      
+      if ($images.length > 0) {
+        gsap.to($images, {
+          scale: 1,
+          duration: 0.3,
+          ease: "power2.out"
+        });
+      }
+    });
+    
+    console.log('🎉 [INDEX HOVER] Index thumb hover animations ready!');
+  } else {
+    console.log('ℹ️ [INDEX HOVER] No .index_item elements found on this page');
   }
 }
 
@@ -969,6 +1032,7 @@ function initializeBarba() {
           destroySliders();
           destroyScrollAnimations();
           destroyProjectHoverAnimations();
+          destroyIndexThumbHoverAnimations();
           destroyDetailsPanelAnimations();
           destroySliderOverviewAnimations();
           destroySVGScrollAnimations();
@@ -1001,6 +1065,7 @@ function initializeBarba() {
           
           // Initialize hover animations for new page
           initializeProjectHoverAnimations();
+          initializeIndexThumbHoverAnimations();
           
           // Initialize details panel animations for new page
           initializeDetailsPanelAnimations();
