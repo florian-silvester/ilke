@@ -629,15 +629,15 @@ function initializeIndexThumbHoverAnimations() {
   if ($indexItems.length > 0) {
     console.log(`✅ [INDEX HOVER] Found ${$indexItems.length} index items - setting up scale animations`);
     
-    // Set initial scale to 103% and overlay to 50%
+    // Set initial scale to 103% and overlay to 15%
     $('.index_item').find('.index_thumb_wrap img').each(function() {
       gsap.set($(this), { scale: 1.03 });
     });
     $('.index_item').find('.index_thumb_overlay').each(function() {
-      gsap.set($(this), { opacity: 0.5 });
+      gsap.set($(this), { opacity: 0.15 });
     });
     
-    // MOUSE ENTER: Scale down to 100% + fade overlay from 50% to 10%
+    // MOUSE ENTER: Scale down to 100% + fade overlay from 15% to 0%
     $(document).on('mouseenter.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
       const $overlay = $(this).find('.index_thumb_overlay');
@@ -652,14 +652,14 @@ function initializeIndexThumbHoverAnimations() {
       
       if ($overlay.length > 0) {
         gsap.to($overlay, {
-          opacity: 0.1,
+          opacity: 0,
           duration: 0.2,
           ease: "power3.out"
         });
       }
     });
     
-    // MOUSE LEAVE: Scale back to 103% + restore overlay to 50%
+    // MOUSE LEAVE: Scale back to 103% + restore overlay to 15%
     $(document).on('mouseleave.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
       const $overlay = $(this).find('.index_thumb_overlay');
@@ -674,7 +674,7 @@ function initializeIndexThumbHoverAnimations() {
       
       if ($overlay.length > 0) {
         gsap.to($overlay, {
-          opacity: 0.5,
+          opacity: 0.15,
           duration: 0.5,
           ease: "power3.out"
         });
