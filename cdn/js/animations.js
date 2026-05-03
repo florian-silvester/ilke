@@ -71,7 +71,12 @@ let customCursorState = {
   isInitialized: false,
   cursor: null,
   labelText: null,
-  labelDot: null
+  labelDot: null,
+  // Last known mouse coords (in viewport-relative pixels). Used by the
+  // scroll handler to re-run hit-testing when the page moves under a
+  // stationary mouse — fixes T6 (label not updating during scroll).
+  lastX: -1,
+  lastY: -1
 };
 
 /**
@@ -188,6 +193,8 @@ function setupCustomCursorListeners() {
  * Updates cursor position following the mouse with smooth GSAP animation
  */
 function handleCursorMove(event) {
+  customCursorState.lastX = event.clientX;
+  customCursorState.lastY = event.clientY;
   if (customCursorState.cursor) {
     gsap.to(customCursorState.cursor, {
       x: event.clientX,
@@ -197,6 +204,84 @@ function handleCursorMove(event) {
       ease: "power2.out"
     });
   }
+}
+
+/**
+ * RESOLVE LABEL FOR A DOM ELEMENT
+ * Used by the scroll handler so the label tracks what's actually under the
+ * stationary cursor when the page moves. Mirrors the rules of the
+ * mouseenter listeners (project_link, nav_link, #bw/#ffwd, swiper-slide).
+ */
+function getProjectLocationText($link) {
+  const $container = $link.closest('.project_masonry_item, .projects_item');
+  if (!$container.length) return 'View';
+
+  // 1. data-location attribute (link or container)
+  const dataLoc = $link.attr('data-location') || $container.attr('data-location');
+  if (dataLoc && dataLoc.trim()) return dataLoc.trim();
+
+  // 2. Explicit .location / .Location / .project-location class
+  const classLoc = $container.find('.location, .Location, .project-location').first().text().trim();
+  if (classLoc) return classLoc;
+
+  // 3. Any descendant with class containing location/city/place
+  let fuzzy = '';
+  $container.find('*').each(function() {
+    const cls = ($(this).attr('class') || '').toLowerCase();
+    if (cls.includes('location') || cls.includes('city') || cls.includes('place')) {
+      const t = $(this).text().trim();
+      if (t) { fuzzy = t; return false; }
+    }
+  });
+  if (fuzzy) return fuzzy;
+
+  // 4. First descendant text node of reasonable length
+  let firstShort = '';
+  $container.find('*').each(function() {
+    const t = $(this).text().trim();
+    if (t.length > 2 && t.length < 100) { firstShort = t; return false; }
+  });
+  return firstShort || 'View';
+}
+
+function resolveCursorLabelAt(el) {
+  if (!el) return { text: '', scaleDot: false };
+  const $el = $(el);
+
+  const $projectLink = $el.closest('.project_link');
+  if ($projectLink.length) return { text: getProjectLocationText($projectLink), scaleDot: true };
+
+  if ($el.closest('.nav_link').length) return { text: '', scaleDot: true };
+  if ($el.closest('#bw').length) return { text: 'Previous', scaleDot: false };
+  if ($el.closest('#ffwd').length) return { text: 'Next', scaleDot: false };
+
+  const $slide = $el.closest('.swiper-slide');
+  if ($slide.length) {
+    const inOverview = $slide.closest('.swiper-wrapper').hasClass('is-overview');
+    return { text: inOverview ? 'Enlarge' : 'Swipe', scaleDot: false };
+  }
+
+  return { text: '', scaleDot: false };
+}
+
+/**
+ * SCROLL → CURSOR-LABEL SYNC (T6)
+ * Browsers don't reliably fire mouseenter/mouseleave during fast scroll, so a
+ * stationary cursor over a moving page keeps showing the previous element's
+ * label. On every scroll event we re-run elementFromPoint at the last known
+ * mouse coords, throttled to one frame.
+ */
+let cursorScrollRaf = null;
+function handleCursorScroll() {
+  if (cursorScrollRaf !== null) return;
+  cursorScrollRaf = requestAnimationFrame(() => {
+    cursorScrollRaf = null;
+    const { lastX, lastY } = customCursorState;
+    if (lastX < 0) return; // No mousemove has happened yet — nothing to track.
+    const el = document.elementFromPoint(lastX, lastY);
+    const { text, scaleDot } = resolveCursorLabelAt(el);
+    updateCursorLabel(text, scaleDot);
+  });
 }
 
 /**
@@ -252,7 +337,12 @@ function initializeCustomCursor() {
   
   // Attach mousemove listener ONCE and NEVER remove it
   document.addEventListener('mousemove', handleCursorMove);
-  
+
+  // T6: keep the label in sync when the page scrolls under a stationary mouse.
+  // Passive (no preventDefault) so it doesn't slow scroll perf, RAF-throttled
+  // inside the handler so we don't hit-test more than once per frame.
+  window.addEventListener('scroll', handleCursorScroll, { passive: true });
+
   // Set initial hover listeners
   setupCustomCursorListeners();
   
@@ -632,19 +722,18 @@ function initializeIndexThumbHoverAnimations() {
   if ($indexItems.length > 0) {
     console.log(`✅ [INDEX HOVER] Found ${$indexItems.length} index items - setting up scale animations`);
     
-    // Set initial scale to 103% and overlay to 15%
+    // Set initial scale to 103%. Overlay darkening removed — leave it at 0.
     $('.index_item').find('.index_thumb_wrap img').each(function() {
       gsap.set($(this), { scale: 1.03 });
     });
     $('.index_item').find('.index_thumb_overlay').each(function() {
-      gsap.set($(this), { opacity: 0.15 });
+      gsap.set($(this), { opacity: 0 });
     });
-    
-    // MOUSE ENTER: Scale down to 100% + fade overlay from 15% to 0%
+
+    // MOUSE ENTER: Scale down to 100%
     $(document).on('mouseenter.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
-      const $overlay = $(this).find('.index_thumb_overlay');
-      
+
       if ($images.length > 0) {
         gsap.to($images, {
           scale: 1,
@@ -652,32 +741,15 @@ function initializeIndexThumbHoverAnimations() {
           ease: "power3.out"
         });
       }
-      
-      if ($overlay.length > 0) {
-        gsap.to($overlay, {
-          opacity: 0,
-          duration: 0.2,
-          ease: "power3.out"
-        });
-      }
     });
-    
-    // MOUSE LEAVE: Scale back to 103% + restore overlay to 15%
+
+    // MOUSE LEAVE: Scale back to 103%
     $(document).on('mouseleave.indexHover', '.index_item', function() {
       const $images = $(this).find('.index_thumb_wrap img');
-      const $overlay = $(this).find('.index_thumb_overlay');
-      
+
       if ($images.length > 0) {
         gsap.to($images, {
           scale: 1.03,
-          duration: 0.5,
-          ease: "power3.out"
-        });
-      }
-      
-      if ($overlay.length > 0) {
-        gsap.to($overlay, {
-          opacity: 0.15,
           duration: 0.5,
           ease: "power3.out"
         });
@@ -1185,12 +1257,12 @@ function initializeBarba() {
          
          after(data) {
            console.log('🔄 After crossfade complete');
-           
-           // Restore scroll position
+
+           // Restore stored scroll if we have one for this page; otherwise
+           // scroll to top so first-time visits don't inherit the scrollY
+           // from the page we just left (home → tall page leaks otherwise).
            const storedPosition = scrollPositions[data.next.url.path];
-           if (storedPosition !== undefined) {
-             window.scrollTo(0, storedPosition);
-           }
+           window.scrollTo(0, storedPosition !== undefined ? storedPosition : 0);
          }
        }
     ],
@@ -2189,8 +2261,11 @@ function initializeSVGScrollAnimations() {
     if (currentScrollY > 50) { // Past initial position
       
       if (scrollDirection === 'down' && svgsVisible) {
-        // SCROLL DOWN: Fade out with reverse stagger
+        // SCROLL DOWN: Fade out with reverse stagger.
+        // Kill any in-flight tweens first so a half-finished fade-in doesn't
+        // leave one logo orphaned (the mobile bug T4).
         console.log('🔽 Scrolling down - fading out SVGs (reverse stagger)');
+        gsap.killTweensOf(['.studio_svg', '.penzlien_svg']);
         gsap.to(['.penzlien_svg', '.studio_svg'], { // REVERSE ORDER
           opacity: 0,
           duration: 0.4,
@@ -2198,10 +2273,12 @@ function initializeSVGScrollAnimations() {
           ease: "power2.out"
         });
         svgsVisible = false;
-        
+
       } else if (scrollDirection === 'up' && !svgsVisible) {
-        // SCROLL UP: Fade in with normal stagger (temporarily)
+        // SCROLL UP: Fade in with normal stagger (temporarily).
+        // Kill any in-flight fade-out tweens so both logos always animate up.
         console.log('🔼 Scrolling up - fading in SVGs temporarily (normal stagger)');
+        gsap.killTweensOf(['.studio_svg', '.penzlien_svg']);
         gsap.to(['.studio_svg', '.penzlien_svg'], { // NORMAL ORDER
           opacity: 1,
           y: 0,
@@ -2211,11 +2288,12 @@ function initializeSVGScrollAnimations() {
         });
         svgsVisible = true;
       }
-      
+
       // Set timeout to fade out when scrolling stops (unless at top)
       scrollTimeout = setTimeout(() => {
         if (window.scrollY > 50 && svgsVisible) {
           console.log('⏸️ Scrolling stopped (not at top) - fading out SVGs');
+          gsap.killTweensOf(['.studio_svg', '.penzlien_svg']);
           gsap.to(['.penzlien_svg', '.studio_svg'], {
             opacity: 0,
             duration: 0.4,
@@ -2225,10 +2303,11 @@ function initializeSVGScrollAnimations() {
           svgsVisible = false;
         }
       }, 150); // 150ms delay after scrolling stops
-      
+
     } else if (isAtTop && !svgsVisible) {
       // At top - ensure SVGs are visible and stay visible
       console.log('🔝 At top of page - showing SVGs permanently');
+      gsap.killTweensOf(['.studio_svg', '.penzlien_svg']);
       gsap.to(['.studio_svg', '.penzlien_svg'], {
         opacity: 1,
         y: 0,
