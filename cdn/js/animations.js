@@ -174,7 +174,10 @@ function setupCustomCursorListeners() {
   $(document).on('mouseleave.customCursor', '#bw', () => updateCursorLabel("", false));
   $(document).on('mouseenter.customCursor', '#ffwd', () => updateCursorLabel("Next", false));
   $(document).on('mouseleave.customCursor', '#ffwd', () => updateCursorLabel("", false));
-  $(document).on('mouseenter.customCursor', '.swiper-slide', () => updateCursorLabel("Swipe", false));
+  $(document).on('mouseenter.customCursor', '.swiper-slide', function() {
+    const inOverview = $(this).closest('.swiper-wrapper').hasClass('is-overview');
+    updateCursorLabel(inOverview ? "Enlarge" : "Swipe", false);
+  });
   $(document).on('mouseleave.customCursor', '.swiper-slide', () => updateCursorLabel("", false));
 
   console.log('✅ [CURSOR HOVERS] Hover listeners are ready.');
@@ -758,7 +761,38 @@ function initializeSliders() {
         display: none !important;
       }
 
-      
+      /* OVERVIEW MODE — horizontal filmstrip.
+         Each thumb keeps its natural aspect ratio at a fixed height.
+         Drag/scroll horizontally to see the rest. */
+      .swiper-wrapper.is-overview {
+        display: flex !important;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: flex-start;
+        height: 100vh !important;
+        width: 100% !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: var(--_spacing---space--1);
+        padding: 0 var(--_spacing---space--1);
+      }
+      .swiper-wrapper.is-overview .swiper-slide {
+        flex: 0 0 auto;
+        width: auto !important;
+        height: 25vh !important;
+      }
+      .swiper-wrapper.is-overview .swiper_img_wrap {
+        width: auto !important;
+        height: 100% !important;
+      }
+      .swiper-wrapper.is-overview .swiper-slide img,
+      .swiper-wrapper.is-overview .slider_img {
+        width: auto !important;
+        height: 100% !important;
+        max-height: none !important;
+        display: block;
+      }
     </style>
   `;
   
@@ -791,12 +825,20 @@ function initializeSliders() {
     const $slider = $(this);
     const $wrapper = $slider.find('.swiper-wrapper');
     const $slides = $slider.find('.swiper-slide');
-    
+
     // Skip if no slides found
     if (!$slides.length) {
       console.warn(`❌ No slides found in slider ${index + 1}`);
       return;
     }
+
+    // Defensive: ensure slider starts in carousel mode, not overview mode.
+    // Webflow markup may include .is-overview on the wrapper by default,
+    // which conflicts with the JS state machine and breaks navigation until
+    // the user toggles overview on/off. Reset all overview classes here.
+    $wrapper.removeClass('is-overview');
+    $slider.removeClass('overview-active');
+    document.body.classList.remove('overview-mode');
     
     console.log(`🔍 Slider ${index + 1} structure:`, {
       slider: $slider.length,
